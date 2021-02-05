@@ -49,7 +49,10 @@ public class AddAwardController {
 			@Valid @RequestBody SingleAward awardInputRequest) {
 
 		try {
+			System.out.println(environment.getProperty("keyvault_connection"));
+			log.warn(environment.getProperty("keyvault_connection"));
 			log.info("environment ***** " + environment.getProperty("keyvault_connection"));
+			
 			log.info("Beofre calling add Award::::");
 			// TODO - check if we can result list of errors here it self
 			if (awardInputRequest == null) {
