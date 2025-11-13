@@ -4,24 +4,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 import com.beis.subsidy.award.transperancy.dbpublishingservice.controller.response.UserPrinciple;
-import com.beis.subsidy.award.transperancy.dbpublishingservice.model.AuditLogs;
-import com.beis.subsidy.award.transperancy.dbpublishingservice.model.BulkUploadMfaAwards;
+import com.beis.subsidy.award.transperancy.dbpublishingservice.model.*;
 import com.beis.subsidy.award.transperancy.dbpublishingservice.repository.AuditLogsRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.expression.ParseException;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.beis.subsidy.award.transperancy.dbpublishingservice.model.BulkUploadAwards;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,7 +29,7 @@ public class ExcelHelper {
 
 	public static String TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-	public final static int EXPECTED_COLUMN_COUNT = 25;
+	public final static int EXPECTED_COLUMN_COUNT = 27;
 	
 	public final static int EXPECTED_MFA_COLUMN_COUNT = 9;
 
@@ -96,92 +95,97 @@ public class ExcelHelper {
 								bulkUploadAwards.setStandaloneAward(currentCell.getStringCellValue().trim());
 								break;
 							case 4:
+								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes")) {
+									bulkUploadAwards.setStandaloneAwardTitle(currentCell.getStringCellValue().trim());
+								}
+							case 5:
 								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
 									bulkUploadAwards.setSubsidyAwardInterest(currentCell.getStringCellValue().trim());
 								break;
-							case 5:
-								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes")) {
-									if (currentCell.getCellType() == CellType.BLANK) {
-										bulkUploadAwards.setSpecificPolicyObjective(null);
-									} else {
-										bulkUploadAwards.setSpecificPolicyObjective(currentCell.getStringCellValue().trim());
-									}
+							case 6:
+								if (currentCell.getCellType() == CellType.BLANK) {
+									bulkUploadAwards.setSpecificPolicyObjective(null);
+								} else {
+									bulkUploadAwards.setSpecificPolicyObjective(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 6:
-								bulkUploadAwards.setSubsidyDescription(currentCell.getStringCellValue().trim());
-								break;
 							case 7:
-								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
-									bulkUploadAwards.setAuthorityURL(currentCell.getStringCellValue());
+								bulkUploadAwards.setSubsidyDescription(currentCell.getStringCellValue().trim());
 								break;
 							case 8:
 								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
-									bulkUploadAwards.setAuthorityURLDescription(currentCell.getStringCellValue());
+									bulkUploadAwards.setAuthorityURL(currentCell.getStringCellValue());
 								break;
 							case 9:
-								bulkUploadAwards.setSpei(currentCell.getStringCellValue().trim());
+								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
+									bulkUploadAwards.setAuthorityURLDescription(currentCell.getStringCellValue());
 								break;
 							case 10:
+								bulkUploadAwards.setLegalBasis(currentCell.getStringCellValue().trim());
+							case 11:
+								bulkUploadAwards.setSpei(currentCell.getStringCellValue().trim());
+								break;
+							case 12:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setSubsidyObjective(null);
 								} else {
 									bulkUploadAwards.setSubsidyObjective(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 11:
+							case 13:
 								String objectiveOther = currentCell.getStringCellValue();
-								String[] otherSplit = currentCell.getStringCellValue().split("-",2);
-								if(otherSplit[0].toLowerCase().contains("other"))
+								String[] otherSplit = currentCell.getStringCellValue().split("-", 2);
+								if (otherSplit[0].toLowerCase().contains("other"))
 									objectiveOther = otherSplit.length > 1 ? otherSplit[1] : otherSplit[0];
 
-								if (currentCell.getCellType()==CellType.BLANK || currentCell.getStringCellValue().trim().isEmpty()) {
+								if (currentCell.getCellType() == CellType.BLANK || currentCell.getStringCellValue().trim().isEmpty()) {
 									bulkUploadAwards.setSubsidyObjectiveOther(null);
-									//if purpose other is populated but purpose is blank
-								}else if(currentCell.getCellType()!=CellType.BLANK && bulkUploadAwards.getSubsidyObjective() == null) {
-
+								} else if (currentCell.getCellType() != CellType.BLANK && bulkUploadAwards.getSubsidyObjective() == null) {
 									bulkUploadAwards.setSubsidyObjective("Other - " + objectiveOther);
 									bulkUploadAwards.setSubsidyObjectiveOther(currentCell.getStringCellValue().trim());
-									//if purpose and other purpose are both populated
-								}else {
+								} else {
 									bulkUploadAwards.setSubsidyObjectiveOther(objectiveOther);
 									bulkUploadAwards.setSubsidyObjective(bulkUploadAwards.getSubsidyObjective().replace("Other", "Other - " + objectiveOther));
 								}
 								break;
-							case 12:
+							case 14:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setSubsidyInstrument(null);
 								} else {
 									bulkUploadAwards.setSubsidyInstrument(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 13:
+							case 15:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setSubsidyInstrumentOther(null);
 								} else {
 									bulkUploadAwards.setSubsidyInstrumentOther(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 14:
-								bulkUploadAwards.setSubsidyAmountRange((currentCell == null || currentCell.getCellType() == CellType.BLANK || (currentCell.getCellType().equals(CellType.STRING) && currentCell.getStringCellValue().trim().isEmpty())) ? null : currentCell.getStringCellValue().trim());
+							case 16:
+								bulkUploadAwards.setSubsidyAmountRange(
+										(currentCell == null || currentCell.getCellType() == CellType.BLANK ||
+												(currentCell.getCellType().equals(CellType.STRING) && currentCell.getStringCellValue().trim().isEmpty())) ?
+												null : currentCell.getStringCellValue().trim()
+								);
 								break;
-							case 15:
+							case 17:
 								if (currentCell.getCellType() == CellType.STRING) {
 									bulkUploadAwards.setSubsidyAmountExact(
-                                            currentCell.getStringCellValue().isEmpty() ? null : currentCell.getStringCellValue().trim()
+											currentCell.getStringCellValue().isEmpty() ? null : currentCell.getStringCellValue().trim()
 									);
 								} else if (currentCell.getCellType() == CellType.NUMERIC) {
-									bulkUploadAwards.setSubsidyAmountExact((String.valueOf(currentCell.getNumericCellValue())));
+									bulkUploadAwards.setSubsidyAmountExact(String.valueOf(currentCell.getNumericCellValue()));
 								}
 								break;
-							case 16:
+							case 18:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setNationalIdType(null);
 								} else {
 									bulkUploadAwards.setNationalIdType(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 17:
+							case 19:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setNationalId(null);
 								} else {
@@ -190,29 +194,28 @@ public class ExcelHelper {
 											currentCell.getStringCellValue().trim()));
 								}
 								break;
-							case 18:
+							case 20:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setBeneficiaryName(null);
 								} else {
 									bulkUploadAwards.setBeneficiaryName(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 19:
+							case 21:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setOrgSize(null);
 								} else {
 									bulkUploadAwards.setOrgSize(currentCell.getStringCellValue().trim());
 								}
-
 								break;
-							case 20:
+							case 22:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setGrantingAuthorityName(null);
 								} else {
 									bulkUploadAwards.setGrantingAuthorityName(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 21:
+							case 23:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setLegalGrantingDate(null);
 								}
@@ -222,27 +225,28 @@ public class ExcelHelper {
 									bulkUploadAwards.setLegalGrantingDate(convertDateToString(currentCell.getDateCellValue()));
 								}
 								break;
-							case 22:
+							case 24:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setGoodsOrServices(null);
 								} else {
 									bulkUploadAwards.setGoodsOrServices(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 23:
+							case 25:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setSpendingRegion(null);
 								} else {
 									bulkUploadAwards.setSpendingRegion(currentCell.getStringCellValue().trim());
 								}
 								break;
-							case 24:
+							case 26:
 								if (currentCell.getCellType() == CellType.BLANK) {
 									bulkUploadAwards.setSpendingSector(null);
 								} else {
 									bulkUploadAwards.setSpendingSector(currentCell.getStringCellValue().trim());
 								}
 								break;
+
 							default:
 								break;
 						}
@@ -436,25 +440,30 @@ public class ExcelHelper {
 		}
 	}
 
-	public static void saveAuditLog(UserPrinciple userPrinciple, String action,String role,
-									AuditLogsRepository auditLogsRepository) {
+	public static void saveAuditLog(UserPrinciple userPrinciple, String action,
+									AuditLogsRepository auditLogsRepository, String award) {
 		AuditLogs audit = new AuditLogs();
 		try {
 			String status ="Published";
-
-			if ("Granting Authority Encoder".equals(role.trim())) {
+			StringBuilder msg;
+			if ("Granting Authority Encoder".equals(userPrinciple.getRole().trim())) {
 				status = "Awaiting Approval";
 			}
-			StringBuilder msg = new StringBuilder("Award ")
-					.append(" added with status ").append(status) ;
+			if ("Bulk upload Awards".equals(action)) {
+				msg = new StringBuilder("Award(s)")
+						.append(" bulk uploaded with status ").append(status) ;
+			}else{
+				msg = new StringBuilder("Award ").append(award)
+						.append(" added with status ").append(status) ;
+			};
 
 			String userName = userPrinciple.getUserName();
 			audit.setUserName(userName);
 			audit.setEventType(action);
-			audit.setEventId(role);
+			audit.setEventId(userPrinciple.getRole());
 			audit.setEventMessage(msg.toString());
 			audit.setGaName(userPrinciple.getGrantingAuthorityGroupName());
-			audit.setCreatedTimestamp(LocalDate.now());
+			audit.setCreatedTimestamp(LocalDateTime.now());
 			auditLogsRepository.save(audit);
 		} catch(Exception e) {
 			log.error("{} :: saveAuditLog failed to perform action", e);
@@ -471,13 +480,81 @@ public class ExcelHelper {
 			audit.setEventId(awardNo);
 			audit.setEventMessage(eventMsg.toString());
 			audit.setGaName(userPrinciple.getGrantingAuthorityGroupName());
-			audit.setCreatedTimestamp(LocalDate.now());
+			audit.setCreatedTimestamp(LocalDateTime.now());
 			auditLogsRepository.save(audit);
 		} catch(Exception e) {
 			log.error("{} :: saveAuditLogForUpdate failed to perform action", e);
 		}
 	}
 
+	public static void saveBulkUploadAwardsAuditLog(List<Award> savedAwards, AuditLogsRepository auditLogsRepository) {
+		List<AuditLogs> auditLogs = savedAwards.stream().map(award -> {
+			AuditLogs auditLog = new AuditLogs();
+			auditLog.setUserName(award.getCreatedBy());
+			auditLog.setGaName(award.getGrantingAuthority().getGrantingAuthorityName());
+			auditLog.setEventType("Bulk upload award(s)");
+			auditLog.setEventId(award.getAwardNumber().toString());
+			auditLog.setEventMessage("Award " + award.getAwardNumber() + " bulk uploaded.");
+			return auditLog;
+		}).collect(Collectors.toList());
+
+		saveBulkUploadAuditMessage(savedAwards, auditLogs, auditLogsRepository);
+	}
+
+	public static void saveBulkUploadMfaAwardsAuditLog(List<MFAAward> savedAwards, AuditLogsRepository auditLogsRepository) {
+		List<AuditLogs> auditLogs = savedAwards.stream().map(mfaAward -> {
+			AuditLogs auditLog = new AuditLogs();
+			auditLog.setUserName(mfaAward.getCreatedBy());
+			auditLog.setGaName(mfaAward.getGrantingAuthority().getGrantingAuthorityName());
+			auditLog.setEventType("Bulk upload award(s)");
+			auditLog.setEventId(mfaAward.getMfaAwardNumber().toString());
+			auditLog.setEventMessage("MFA Award " + mfaAward.getMfaAwardNumber() + " bulk uploaded.");
+			return auditLog;
+		}).collect(Collectors.toList());
+
+		saveBulkUploadAuditMessage(savedAwards, auditLogs, auditLogsRepository);
+	}
+
+	public static void saveBulkUploadAuditMessage (List<?> savedAwardsList, List<AuditLogs> auditLogs, AuditLogsRepository auditLogsRepository){
+		log.info("creating summary award/MFA award bulk upload message");
+		String msg = bulkUploadAuditMsgBuilder(savedAwardsList,auditLogs);
+		AuditLogs audit = new AuditLogs();
+		audit.setUserName(auditLogs.get(0).getUserName());
+		audit.setEventType(auditLogs.get(0).getEventType());
+		audit.setEventId(auditLogs.get(0).getEventId());
+		audit.setEventMessage(msg);
+		audit.setGaName(auditLogs.get(0).getGaName());
+		audit.setCreatedTimestamp(LocalDateTime.now());
+		auditLogsRepository.save(audit);
+	}
+
+	public static String bulkUploadAuditMsgBuilder (List<?> savedAwardsList, List<AuditLogs> auditLogs){
+		String msg = "";
+
+		if(savedAwardsList == null || auditLogs == null || savedAwardsList.isEmpty()){
+			log.error("Error in bulkUploadAuditMsgBuilder :: savedAwardsList: {} auditLogs: {}", savedAwardsList, auditLogs);
+			return msg;
+		}
+
+		if(savedAwardsList.get(0) instanceof MFAAward){
+			List<MFAAward> savedAwards = (List<MFAAward>) savedAwardsList;
+			msg = String.format(
+					"%d MFA Award(s) (%s-%s) bulk uploaded successfully",
+					auditLogs.size(),
+					savedAwards.get(0).getMfaAwardNumber(),
+					savedAwards.get(savedAwards.size() - 1).getMfaAwardNumber()
+			);
+		} else if (savedAwardsList.get(0) instanceof Award) {
+			List<Award> savedAwards = (List<Award>) savedAwardsList;
+			msg = String.format(
+					"%d Award(s) (%s-%s) bulk uploaded successfully",
+					auditLogs.size(),
+					savedAwards.get(0).getAwardNumber(),
+					savedAwards.get(savedAwards.size() - 1).getAwardNumber()
+			);
+		}
+		return msg;
+	}
 	public static boolean isNumeric(String strNum) {
 		if (strNum == null) {
 			return false;

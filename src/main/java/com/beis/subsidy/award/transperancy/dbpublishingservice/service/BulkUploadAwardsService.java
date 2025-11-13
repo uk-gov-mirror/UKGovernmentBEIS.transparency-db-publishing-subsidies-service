@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.beis.subsidy.award.transperancy.dbpublishingservice.controller.response.UserPrinciple;
 import com.beis.subsidy.award.transperancy.dbpublishingservice.model.*;
 import com.beis.subsidy.award.transperancy.dbpublishingservice.repository.AdminProgramRepository;
 import com.beis.subsidy.award.transperancy.dbpublishingservice.util.AccessManagementConstant;
@@ -38,34 +39,36 @@ public class BulkUploadAwardsService {
 		put("Title", "B");
 		put("AP Number", "C");
 		put("Standalone", "D");
-		put("Subsidies or Schemes of Interest (SSoI) or Subsidies or Schemes of Particular Interest (SSoPI)", "E");
-		put("Specific Policy Objective", "F");
-		put("Description", "G");
-        put("Public Authority URL", "H");
-		put("Public Authority URL Description", "I");
-		put("Services of Public Economic Interest (SPEI)", "J");
-		put("Objective", "K");
-		put("Objective Other", "L");
-		put("Instrument", "M");
-		put("Instrument Other", "N");
-		put("Full Range", "O");
-		put("Full Exact", "P");
-		put("ID Type", "Q");
-		put("ID", "R");
-		put("Beneficiary", "S");
-		put("Size of Org", "T");
-		put("GA Name", "U");
-		put("Legal Granting Date", "V");
-		put("Goods Services", "W");
-		put("Region", "X");
-		put("Sector", "Y");
+		put("Standalone award title", "E");
+		put("Subsidies or Schemes of Interest (SSoI) or Subsidies or Schemes of Particular Interest (SSoPI)", "F");
+		put("Specific Policy Objective", "G");
+		put("Description", "H");
+        put("Public Authority URL", "I");
+		put("Public Authority URL Description", "J");
+		put("Legal Basis","K");
+		put("Services of Public Economic Interest (SPEI)", "L");
+		put("Objective", "M");
+		put("Objective Other", "N");
+		put("Instrument", "O");
+		put("Instrument Other", "P");
+		put("Full Range", "Q");
+		put("Full Exact", "R");
+		put("ID Type", "S");
+		put("ID", "T");
+		put("Beneficiary", "U");
+		put("Size of Org", "V");
+		put("GA Name", "W");
+		put("Legal Granting Date", "X");
+		put("Goods Services", "Y");
+		put("Region", "Z");
+		put("Sector", "AA");
 	}};
 
 
 	/*
 	 * the below method validate the excel file passed in request.
 	 */
-	public ValidationResult validateFile(MultipartFile file, String role) {
+	public ValidationResult validateFile(MultipartFile file, UserPrinciple userPrinciple) {
 
 		try {
 
@@ -190,11 +193,13 @@ public class BulkUploadAwardsService {
 
 			List<ValidationErrorResult> adminProgramNumberErrorList = validateAdminProgramNumber(bulkUploadAwards);
 
-			List<ValidationErrorResult> SubsidyAwardInterestErrorList = validateSubsidyAwardInterest(
-					bulkUploadAwards);
+			List<ValidationErrorResult> SubsidyAwardInterestErrorList = validateSubsidyAwardInterest(bulkUploadAwards);
 
-			List<ValidationErrorResult> subsidySpeiErrorList = validateSubsidySpei(
-					bulkUploadAwards);
+			List<ValidationErrorResult> subsidySpeiErrorList = validateSubsidySpei(bulkUploadAwards);
+
+			List<ValidationErrorResult> LegalBasisErrorList = validateLegalBasis(bulkUploadAwards);
+
+			List<ValidationErrorResult> StandaloneAwardTitleErrorList = validateStandaloneAwardTitle(bulkUploadAwards);
 
 			// Merge lists of Validation Errors
 			List<ValidationErrorResult> validationErrorResultList = Stream
@@ -205,7 +210,8 @@ public class BulkUploadAwardsService {
 							spendingRegionErrorList, spendingSectorErrorList, goodsOrServiceErrorList,SubsidyInstrumentErrorList,
 							legalGrantingDateErrorList,SubsidyElementFullAmountErrorList, StandaloneAwardErrorList,
 							AuthorityURLErrorList, AuthorityURLDescriptionErrorList, SubsidyDescriptionErrorList, SpecificPolicyObjectiveErrorList,
-							SubsidyTaxRangeAmountErrorList, adminProgramNumberErrorList, SubsidyAwardInterestErrorList, subsidySpeiErrorList)
+							SubsidyTaxRangeAmountErrorList, adminProgramNumberErrorList, SubsidyAwardInterestErrorList, subsidySpeiErrorList,LegalBasisErrorList,
+							StandaloneAwardTitleErrorList)
 					.flatMap(x -> x.stream()).collect(Collectors.toList());
 
 			log.info("Final validation errors list ...printing list of errors - start");
@@ -223,7 +229,7 @@ public class BulkUploadAwardsService {
 
 				log.info("No validation error in bulk excel template");
 
-				awardService.processBulkAwards(bulkUploadAwards,role);
+				awardService.processBulkAwards(bulkUploadAwards,userPrinciple.getRole(), userPrinciple);
 			}
 
 			return validationResult;
@@ -233,6 +239,32 @@ public class BulkUploadAwardsService {
 			throw new RuntimeException("Fail to store data : " + e.getMessage());
 		}
 
+	}
+
+	private List<ValidationErrorResult> validateStandaloneAwardTitle(List<BulkUploadAwards> bulkUploadAwards) {
+		List<ValidationErrorResult> errorResults = new ArrayList<>();
+
+		// Standalone award title missing
+		List<BulkUploadAwards> standaloneAwardTitleMissingList = bulkUploadAwards.stream()
+				.filter(award -> ((award.getStandaloneAward().equalsIgnoreCase("yes")) && (award.getStandaloneAwardTitle() == null || award.getStandaloneAwardTitle().isEmpty())))
+				.collect(Collectors.toList());
+
+		errorResults.addAll(standaloneAwardTitleMissingList.stream()
+				.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Standalone award title"),
+						"When the award is standalone you must include the standalone award title"))
+				.collect(Collectors.toList()));
+
+		// Standalone award title > 255 chars
+		List<BulkUploadAwards> standaloneAwardTitleLengthList = bulkUploadAwards.stream()
+				.filter(award -> (award.getStandaloneAward().equalsIgnoreCase("yes") && (award.getStandaloneAwardTitle().length() > 255)))
+				.collect(Collectors.toList());
+
+		errorResults.addAll(standaloneAwardTitleLengthList.stream()
+				.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Standalone award title"),
+						"Standalone award title must be 255 characters or less"))
+				.collect(Collectors.toList()));
+
+		return errorResults;
 	}
 
 	private List<ValidationErrorResult> validateAuthorityURLDescription(List<BulkUploadAwards> bulkUploadAwards) {
@@ -345,29 +377,68 @@ public class BulkUploadAwardsService {
 	}
 
 	private List<ValidationErrorResult> validateSpecificPolicyObjective(List<BulkUploadAwards> bulkUploadAwards) {
+		List<ValidationErrorResult> errorList = new ArrayList<>();
 		List<BulkUploadAwards> specificPolicyObjectiveErrorRecordsList = bulkUploadAwards.stream()
 				.filter(award -> (
 						award.getSpecificPolicyObjective() != null && award.getSpecificPolicyObjective().length() > 1500)
 				)
 				.collect(Collectors.toList());
 
-		List<ValidationErrorResult> validationSpecificPolicyObjectiveResultList = new ArrayList<>();
-		validationSpecificPolicyObjectiveResultList = specificPolicyObjectiveErrorRecordsList.stream()
-				.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Specific Policy Objective"),
-						"The specific policy objective must be 1500 characters or less."))
-				.collect(Collectors.toList());
+			errorList.addAll(specificPolicyObjectiveErrorRecordsList.stream()
+					.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Specific Policy Objective"),
+							"The specific policy objective must be 1500 characters or less."))
+					.collect(Collectors.toList()));
 
 		List<BulkUploadAwards> validateSpecificPolicyObjectiveMissingErrorList = bulkUploadAwards.stream()
 				.filter(award -> (Objects.equals(award.getStandaloneAward(), "Yes") && award.getSpecificPolicyObjective() == null)).collect(Collectors.toList());
 
-		if (validateSpecificPolicyObjectiveMissingErrorList.size() > 0){
-			validationSpecificPolicyObjectiveResultList.addAll(validateSpecificPolicyObjectiveMissingErrorList.stream()
+
+			errorList.addAll(validateSpecificPolicyObjectiveMissingErrorList.stream()
 					.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Specific Policy Objective"),
 							"You must enter the specific policy objective."))
 					.collect(Collectors.toList()));
-		}
 
-		return validationSpecificPolicyObjectiveResultList;
+
+		List<BulkUploadAwards> specificPolicyObjectiveWhenStandaloneAwardErrorRecordsList = bulkUploadAwards.stream()
+				.filter(award -> (Objects.equals(award.getStandaloneAward(), "No") && award.getSpecificPolicyObjective() != null)
+				)
+				.collect(Collectors.toList());
+
+			errorList.addAll(specificPolicyObjectiveWhenStandaloneAwardErrorRecordsList.stream()
+					.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Specific Policy Objective"),
+							"Specific Policy Objective is only saved and published for standalone awards. If you are submitting an in-scheme award, please include the policy objective in the Subsidy Description field (Field G) instead "))
+					.collect(Collectors.toList()));
+
+		return errorList;
+	}
+
+	private List<ValidationErrorResult> validateLegalBasis(List<BulkUploadAwards> bulkUploadAwards) {
+		List<BulkUploadAwards> legalBasisErrorRecordsList = bulkUploadAwards.stream()
+				.filter(award -> (
+						award.getLegalBasis() != null && award.getLegalBasis().length() > 5000)
+				)
+				.collect(Collectors.toList());
+
+		List<ValidationErrorResult> validationLegalBasisResultList = new ArrayList<>();
+		validationLegalBasisResultList = legalBasisErrorRecordsList.stream()
+				.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Legal Basis"),
+						"The legal basis must be 5000 characters or less."))
+				.collect(Collectors.toList());
+
+		// Condition 2: Null or empty
+		List<BulkUploadAwards> legalBasisMissingList = bulkUploadAwards.stream()
+				.filter(award -> award.getLegalBasis() == null || award.getLegalBasis().trim().isEmpty())
+				.collect(Collectors.toList());
+
+		List<ValidationErrorResult> missingErrors = legalBasisMissingList.stream()
+				.map(award -> new ValidationErrorResult(String.valueOf(award.getRow()), columnMapping.get("Legal Basis"),
+						"You must enter a legal basis."))
+				.collect(Collectors.toList());
+
+		validationLegalBasisResultList.addAll(missingErrors);
+
+
+		return validationLegalBasisResultList;
 	}
 
 	private List<ValidationErrorResult> validateSubsidySpei(List<BulkUploadAwards> bulkUploadAwards) {

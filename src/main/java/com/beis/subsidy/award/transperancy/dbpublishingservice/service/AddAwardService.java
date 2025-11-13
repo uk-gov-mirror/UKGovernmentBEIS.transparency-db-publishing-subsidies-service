@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
+import rx.Single;
 import uk.gov.service.notify.NotificationClientException;
 
 @Slf4j
@@ -72,6 +73,7 @@ public class AddAwardService {
 			List<SingleAwardValidationResult> validateSubsidyAwardDescription = validateSubsidyAwardDescription(award);
 
 			List<SingleAwardValidationResult> validateSpecificPolicyObjective = validateSpecificPolicyObjective(award);
+
 
 			// Validation National Id length check
 			List<SingleAwardValidationResult> nationalIdMissingList = validateNationalIdAwards(award);
@@ -153,23 +155,28 @@ public class AddAwardService {
 			 * 
 			 */
 			List<SingleAwardValidationResult> SubsidyInstrumentErrorList = validateSubsidyInstrument(award);
-			
+
 			List<SingleAwardValidationResult> AdminProgramErrorList = validateAdminProgram(award);
 
 			List<SingleAwardValidationResult> subsidyAwardInterestErrorList = validateSubsidyAwardInterest(award);
 
 			List<SingleAwardValidationResult> SpeiErrorList = validateSpei(award);
 
-			// Merge lists of Validation Errors
+			List<SingleAwardValidationResult> validateLegalBasisErrorList = validateLegalBasis(award);
+			
+			List<SingleAwardValidationResult> validateStandaloneAwardTitleErrorList = validateStandaloneAwardTitle(award);
+
+
+		// Merge lists of Validation Errors
 			List<SingleAwardValidationResult> validationErrorResultList = Stream
 					.of(scNumberNameCheckList, subsidyMeasureTitleNameLengthList, subsidyPurposeCheckList,
-							nationalIdTypeMissingList, standaloneAwardStatusMissingList, validateSubsidyAwardDescription,validateSpecificPolicyObjective,
-							nationalIdMissingList, beneficiaryNameErrorList,
+							nationalIdTypeMissingList, standaloneAwardStatusMissingList, validateSubsidyAwardDescription,validateSpecificPolicyObjective
+							,validateLegalBasisErrorList, nationalIdMissingList, beneficiaryNameErrorList,
 							beneficiaryMissingList, subsidyControlNumberMismatchList,
 							grantingAuthorityNameErrorList, grantingAuthorityErrorList, sizeOfOrgErrorList,
 							spendingRegionErrorList, spendingSectorErrorList, goodsOrServiceErrorList,
 							SubsidyInstrumentErrorList,legalGrantingDateErrorList,SubsidyElementFullAmountErrorList,
-							AdminProgramErrorList, subsidyAwardInterestErrorList, SpeiErrorList)
+							AdminProgramErrorList, subsidyAwardInterestErrorList, SpeiErrorList, validateStandaloneAwardTitleErrorList)
 					.flatMap(x -> x.stream()).collect(Collectors.toList());
 
 		
@@ -188,6 +195,7 @@ public class AddAwardService {
 				validationResult.setTotalErrors(0);
 				validationResult
 						.setMessage(savedAward.getAwardNumber()  + " Award saved in Database");
+				validationResult.setAwardNumber(savedAward.getAwardNumber().toString());
 				//notification call START here
 
 				GrantingAuthority gaObj = gaRepository
@@ -220,6 +228,20 @@ public class AddAwardService {
 				
 			}
 			return validationResult;
+	}
+
+	private List<SingleAwardValidationResult> validateStandaloneAwardTitle(SingleAward award) {
+		List<SingleAwardValidationResult> errorList = new ArrayList<>();
+		// Only validate input if standalone award
+		if (award.getStandaloneAward() != null && award.getStandaloneAward().equalsIgnoreCase("yes")) {
+			if (award.getStandaloneAwardTitle() == null || award.getStandaloneAwardTitle().isEmpty()) {
+				errorList.add(new SingleAwardValidationResult("StandaloneAwardTitle", "You must include a standalone award title."));
+			}
+			if(award.getStandaloneAwardTitle() != null && award.getStandaloneAwardTitle().length() > 255){
+				errorList.add(new SingleAwardValidationResult("StandaloneAwardTitle", "The standalone award title must be 255 characters or less."));
+			}
+		}
+		return errorList;
 	}
 
 	private List<SingleAwardValidationResult> validateAdminProgram(SingleAward award) {
@@ -317,6 +339,22 @@ public class AddAwardService {
 		return errorList;
 	}
 
+	private List<SingleAwardValidationResult> validateLegalBasis(SingleAward award) {
+		/*
+		 * Validation that subsidy award description exists
+		 */
+		List<SingleAwardValidationResult> errorList = new ArrayList<>();
+		if(award.getLegalBasis() != null && award.getLegalBasis().length() > 5000){
+			errorList.add(new SingleAwardValidationResult("legalBasis","The legal basis must be 5000 characters or less."));
+		}
+
+		if(award.getLegalBasis() == null || StringUtils.isEmpty(award.getLegalBasis())){
+			errorList.add(new SingleAwardValidationResult("legalBasis","The legal basis field is mandatory."));
+		}
+
+
+		return errorList;
+	}
 	/*
 	 * 
 	 * the below method validate either SC number or Sc Title exist in the file.

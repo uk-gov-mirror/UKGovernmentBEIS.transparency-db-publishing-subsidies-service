@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.beis.subsidy.award.transperancy.dbpublishingservice.controller.response.UserPrinciple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -55,6 +56,7 @@ public class BulkUploadAwardsServiceTest {
 
 	BulkUploadAwards bulkUploadAwardStandalone;
 
+	UserPrinciple userPrinciple;
 
 	String path = "src/test/resource/Bulk_Upload_Awards_Template_local_success.xlsx";
 	String path_error = "src/test/resource/Bulk_Upload_Awards_Template_local_errors.xlsx";
@@ -78,6 +80,7 @@ public class BulkUploadAwardsServiceTest {
 		bulkUploadAward.setStandaloneAward("No");
 		bulkUploadAward.setSubsidyDescription("A description");
 		bulkUploadAward.setSpei("Yes");
+		bulkUploadAward.setLegalBasis("legal basis");
 		bulkUploadAward.setSubsidyObjective("Environmental protection");
 		bulkUploadAward.setSubsidyInstrument("Loan");
 		bulkUploadAward.setSubsidyAwardInterest("");
@@ -103,6 +106,7 @@ public class BulkUploadAwardsServiceTest {
 		bulkUploadAwardStandalone.setStandaloneAward("Yes");
 		bulkUploadAwardStandalone.setSubsidyDescription("A description");
 		bulkUploadAwardStandalone.setAuthorityURL("test.co.uk");
+		bulkUploadAwardStandalone.setLegalBasis("legal basis");
 		bulkUploadAwardStandalone.setAuthorityURLDescription("test.co.uk description");
 		bulkUploadAwardStandalone.setSubsidyObjective("SME support+J3");
 		bulkUploadAwardStandalone.setSubsidyInstrument("Tax measures (tax credit, or tax/duty exemption)");
@@ -122,6 +126,12 @@ public class BulkUploadAwardsServiceTest {
 		bulkUploadAwardStandalone.setSubsidyObjectiveOther("abc");
 		bulkUploadAwardStandalone.setSubsidyInstrumentOther("def");
 
+		userPrinciple = new UserPrinciple();
+		userPrinciple.setUserName("Beis Admin");
+		userPrinciple.setRole("Beis Administrator");
+		userPrinciple.setPassword("password123");
+		userPrinciple.setGrantingAuthorityGroupId(1);
+		userPrinciple.setGrantingAuthorityGroupName("TEST GA");
 
 		MockitoAnnotations.openMocks(this);
 
@@ -187,7 +197,7 @@ public class BulkUploadAwardsServiceTest {
 		when(adServiceMock.getAllSubsidyMeasures()).thenReturn(submList);
 		when(adServiceMock.getAllGrantingAuthorities()).thenReturn(gaList);
 
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
@@ -251,7 +261,7 @@ public class BulkUploadAwardsServiceTest {
 		when(adServiceMock.getAllSubsidyMeasures()).thenReturn(submList);
 		when(adServiceMock.getAllGrantingAuthorities()).thenReturn(gaList);
 
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
@@ -291,7 +301,7 @@ public class BulkUploadAwardsServiceTest {
 		when(awardRepository.save(saveAward)).thenReturn(expectedAward);
 		when(grepo.findAll()).thenReturn(gaList);
 		when(smRepository.findAll()).thenReturn(smList);
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
@@ -331,7 +341,7 @@ public class BulkUploadAwardsServiceTest {
 		when(awardRepository.save(saveAward)).thenReturn(expectedAward);
 		when(grepo.findAll()).thenReturn(gaList);
 		when(smRepository.findAll()).thenReturn(smList);
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile,role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
@@ -351,7 +361,7 @@ public class BulkUploadAwardsServiceTest {
 		bulkUploadAward.setNationalId("123456");
 		String role = "Granting Authority Administrator";
 		ValidationResult result = new ValidationResult();
-		result.setErrorRows(35);
+		result.setErrorRows(37);
 		result.setTotalRows(2);
 
 		awardList.add(bulkUploadAward);
@@ -373,7 +383,7 @@ public class BulkUploadAwardsServiceTest {
 		when(awardRepository.save(saveAward)).thenReturn(expectedAward);
 		when(adServiceMock.getAllGrantingAuthorities()).thenReturn(gaList);
 		when(adServiceMock.getAllSubsidyMeasures()).thenReturn(smList);
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
@@ -393,7 +403,7 @@ public class BulkUploadAwardsServiceTest {
 		bulkUploadAward.setNationalId("123456");
 
 		ValidationResult result = new ValidationResult();
-		result.setErrorRows(35);
+		result.setErrorRows(37);
 		result.setTotalRows(2);
 
 		awardList.add(bulkUploadAward);
@@ -416,7 +426,7 @@ public class BulkUploadAwardsServiceTest {
 		when(awardRepository.save(saveAward)).thenReturn(expectedAward);
 		when(adServiceMock.getAllGrantingAuthorities()).thenReturn(gaList);
 		when(adServiceMock.getAllSubsidyMeasures()).thenReturn(smList);
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile,role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
@@ -436,7 +446,7 @@ public class BulkUploadAwardsServiceTest {
 		bulkUploadAward.setNationalId("123456");
 
 		ValidationResult result = new ValidationResult();
-		result.setErrorRows(35);
+		result.setErrorRows(37);
 		result.setTotalRows(2);
 
 		awardList.add(bulkUploadAward);
@@ -459,7 +469,7 @@ public class BulkUploadAwardsServiceTest {
 		when(awardRepository.save(saveAward)).thenReturn(expectedAward);
 		when(adServiceMock.getAllGrantingAuthorities()).thenReturn(gaList);
 		when(adServiceMock.getAllSubsidyMeasures()).thenReturn(smList);
-		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, role);
+		ValidationResult results = bulkAwardServiceMock.validateFile(mockMultipartFile, userPrinciple);
 
 		assertThat(results.getErrorRows()).isEqualTo(result.getErrorRows());
 
