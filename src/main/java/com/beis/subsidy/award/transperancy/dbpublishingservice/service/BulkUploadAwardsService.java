@@ -43,9 +43,9 @@ public class BulkUploadAwardsService {
 		put("Subsidies or Schemes of Interest (SSoI) or Subsidies or Schemes of Particular Interest (SSoPI)", "F");
 		put("Specific Policy Objective", "G");
 		put("Description", "H");
-        put("Public Authority URL", "I");
-		put("Public Authority URL Description", "J");
-		put("Legal Basis","K");
+		put("Legal Basis", "I");
+        put("Public Authority URL", "J");
+		put("Public Authority URL Description", "K");
 		put("Services of Public Economic Interest (SPEI)", "L");
 		put("Objective", "M");
 		put("Objective Other", "N");
