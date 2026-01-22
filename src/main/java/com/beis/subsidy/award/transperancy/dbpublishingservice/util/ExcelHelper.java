@@ -113,15 +113,16 @@ public class ExcelHelper {
 								bulkUploadAwards.setSubsidyDescription(currentCell.getStringCellValue().trim());
 								break;
 							case 8:
-								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
-									bulkUploadAwards.setAuthorityURL(currentCell.getStringCellValue());
+								bulkUploadAwards.setLegalBasis(currentCell.getStringCellValue().trim());
 								break;
 							case 9:
 								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
-									bulkUploadAwards.setAuthorityURLDescription(currentCell.getStringCellValue());
+									bulkUploadAwards.setAuthorityURL(currentCell.getStringCellValue());
 								break;
 							case 10:
-								bulkUploadAwards.setLegalBasis(currentCell.getStringCellValue().trim());
+								if(bulkUploadAwards.getStandaloneAward().equalsIgnoreCase("yes"))
+									bulkUploadAwards.setAuthorityURLDescription(currentCell.getStringCellValue());
+								break;
 							case 11:
 								bulkUploadAwards.setSpei(currentCell.getStringCellValue().trim());
 								break;
